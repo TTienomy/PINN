@@ -26,6 +26,8 @@ class TelegrapherPINN(nn.Module):
             
         # Output layer: neurons -> 1 output
         layers.append(nn.Linear(neurons, 1))
+        # [Referee #1] Positivity Constraint
+        layers.append(nn.Softplus())
         
         self.net = nn.Sequential(*layers)
         
@@ -71,6 +73,8 @@ class ParametricTelegrapherPINN(nn.Module):
             layers.append(nn.Tanh())
             
         layers.append(nn.Linear(neurons, 1))
+        # [Referee #1] Positivity Constraint
+        layers.append(nn.Softplus())
         
         self.net = nn.Sequential(*layers)
         self._init_weights()
