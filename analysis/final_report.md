@@ -87,14 +87,30 @@ Instead of retraining for each regime, we modified the network to accept physica
 
 ![Adaptive Solver](/home/tomytien/.gemini/antigravity/brain/891e5d61-ff11-4956-a9a8-327a99b1de75/adaptive_solver_demo.png)
 
-## 9. Conclusion
-The Relativistic Telegrapher's PINN successfully:
-1. Fits the non-Gaussian empirical distribution of BTC returns.
-2. Reveals long-memory dynamics ($\tau \sim 5$ days).
-3. Generates a realistic Volatility Smile.
-4. Provides a robust risk metric that safeguards against "Black Swan" events better than standard models.
-5. Can be optimized to free up **Over 40% of Capital** compared to its raw calibration, without compromising safety.
-6. **Passes the Look-ahead Test**: Rolling calibration confirms the non-diffusive nature of the market is a persistent, evolving feature, not a fitting artifact.
-7. **Production Ready**: The Adaptive Solver enables real-time response to changing market physics.
+## 9. Hedge Fund Hardening (Phase 9)
+We hardened the system for real-world trading by addressing Look-ahead Bias, Measure Mismatch, and Model Failure.
 
-This confirms that **Finite-Speed Thermodynamics** is a viable and potentially superior framework for crypto derivatives pricing and risk management.
+### 9.1 Kalman Filter (Parameter Tracking)
+To address parameter drift and noise, we implemented a **Kalman Filter**.
+- **Result**: Successfully separates signal from noise. It confirms the long-term upward trend in $\tau$ while smoothing out short-term jitter in $c$.
+- **Utility**: Provides clean next-step predictions for $c_{t+1}$ and $\tau_{t+1}$ to use in pricing, avoiding the use of stale lagging averages.
+
+![Kalman](/home/tomytien/.gemini/antigravity/brain/891e5d61-ff11-4956-a9a8-327a99b1de75/kalman_tracking.png)
+
+### 9.2 Regime Monitor (Kill Switch)
+We implemented a safety module that monitors the PINN's Calibration Loss.
+- **Logic**: If the model cannot fit the return distribution (High Loss), physical assumptions are likely failing.
+- **Findings**: Detected "Yellow Alerts" in late 2019.
+- **Current Status**: **GREEN**. The model is currently healthy and fitting the 2026 market regime well.
+
+![Regime](/home/tomytien/.gemini/antigravity/brain/891e5d61-ff11-4956-a9a8-327a99b1de75/regime_monitor.png)
+
+## 10. Conclusion
+The Project has evolved from an academic proof-of-concept to a hardened quantitative framework.
+
+1. **Physics**: Relativistic Telegrapher's Equation captures crypto heavy tails ($\tau \approx 6.1$ days).
+2. **Math**: Adaptive PINN solves the non-stationary universe problem.
+3. **Engineering**: Kalman Filters and Kill Switches ensure operational safety.
+4. **Finance**: Martingale constraints enforce no-arbitrage pricing.
+
+**Final Verdict**: The system is now ready for paper trading validation.
