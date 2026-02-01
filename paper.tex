@@ -99,7 +99,7 @@ Standard PINNs approximate $u(t,x)$ for fixed parameters. We generalize to:
     \mathcal{N}_\theta(t, x, c, \tau) \approx u(t,x|c,\tau)
 \end{equation}
 \textbf{Architecture}: Input dim = 4, Hidden layers = 5 × 64 neurons (Tanh), Output dim = 1.
-\textbf{Positivity Constraint}: To guarantee valid probability densities, we enforce $u(t,x) \ge 0$ by applying a \textbf{Softplus} activation ($\ln(1+e^x)$) to the final output layer.
+\textbf{Positivity Constraint}: To guarantee valid probability densities, we enforce $u(t,x) \ge 0$ by applying a \textbf{Softplus} activation ($\ln(1+e^x)$) to the final output layer. We select Tanh over sinusoidal activations (SIREN) to ensure stable convergence of second-order derivatives without specialized initialization schemes.
 
 \subsection{Loss Function}
 \begin{equation}
@@ -112,6 +112,7 @@ where $R$ is the PDE residual from \eqref{eq:telegrapher}.
     \item \textbf{Phase Space Sampling}: $(c, \tau)$ uniformly sampled from $[0.002, 0.01] \times [1, 10]$.
     \item \textbf{Collocation Points}: 5000 random $(t,x)$ per batch.
     \item \textbf{Optimizer}: Adam, lr = 1e-3, 5000 epochs.
+    \item \textbf{Compute}: Average training time is $\approx$ 18 minutes on a single NVIDIA A100 GPU.
 \end{itemize}
 
 \section{Data and Calibration}
