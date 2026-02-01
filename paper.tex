@@ -240,4 +240,50 @@ We established the Telegrapher's equation as a theoretically grounded, empirical
 \section*{Acknowledgments}
 This research was conducted with computational support from Google DeepMind's Agentic AI platform.
 
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\appendix
+
+\section{Derivation of Risk-Neutral Constraints}
+\label{app:derivation}
+Let $S_t$ denote the asset price at time $t$. We define the log-return $x_t = \ln(S_t / S_0)$. The asset price is given by $S_t = S_0 e^{x_t}$.
+Under the risk-neutral measure $\mathbb{Q}$, the discounted asset price process $e^{-rt} S_t$ must be a martingale. Therefore:
+\begin{equation}
+    \mathbb{E}^\mathbb{Q}[e^{-rT} S_T \mid S_0] = S_0
+\end{equation}
+Substituting $S_T = S_0 e^{x_T}$:
+\begin{equation}
+    e^{-rT} \mathbb{E}^\mathbb{Q}[S_0 e^{x_T}] = S_0 \implies \mathbb{E}^\mathbb{Q}[e^{x_T}] = e^{rT}
+\end{equation}
+In terms of the probability density function $u(T, x)$ of the log-returns:
+\begin{equation}
+    \int_{-\infty}^{\infty} e^x u(T, x) \, dx = e^{rT}
+\end{equation}
+This integral constraint allows us to enforce the no-arbitrage condition directly within the PINN loss function without making assumptions about the specific form of the stochastic process (e.g., GBM or Jump Diffusion).
+
+\section{Hyperparameter Configuration}
+\label{app:hyperparams}
+The detailed hyperparameters for the \textbf{ParametricTelegrapherPINN} are listed below. These were selected based on a coarse-to-fine grid search minimizing the validation PDE residual.
+
+\begin{table}[H]
+\centering
+\caption{PINN Hyperparameters}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\ \midrule
+Hidden Layers & 5 \\
+Neurons per Layer & 64 \\
+Activation Function & Tanh \\
+Output Activation & Softplus \\
+Optimizer & Adam \\
+Learning Rate & $1 \times 10^{-3}$ \\
+Batch Size & 5000 (Collocation Points) \\
+Epochs & 5000 \\
+$\lambda_{PDE}$ (Physics Weight) & 1.0 \\
+$\lambda_{IC}$ (Initial Cond. Weight) & 10.0 \\
+$\lambda_{Mart}$ (Martingale Weight) & 5.0 \\ \bottomrule
+\end{tabular}
+\end{table}
+
 \end{document}
