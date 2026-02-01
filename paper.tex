@@ -112,7 +112,7 @@ where $R$ is the PDE residual from \eqref{eq:telegrapher}.
     \item \textbf{Phase Space Sampling}: $(c, \tau)$ uniformly sampled from $[0.002, 0.01] \times [1, 10]$.
     \item \textbf{Collocation Points}: 5000 random $(t,x)$ per batch.
     \item \textbf{Optimizer}: Adam, lr = 1e-3, 5000 epochs.
-    \item \textbf{Compute}: Average training time is $\approx$ 18 minutes on a single NVIDIA A100 GPU.
+    \item \textbf{Combine}: Average training time is $< 3$ minutes on a single NVIDIA RTX 4090 GPU, demonstrating extreme computational efficiency.
 \end{itemize}
 
 \section{Data and Calibration}
