@@ -1,41 +1,123 @@
-# Relativistic Telegrapher's Equation for Crypto Pricing
+# Relativistic Quantitative Finance: Physics-Informed Option Pricing
 
-**Project Event Horizon** explores the use of **Physics-Informed Neural Networks (PINNs)** to model cryptocurrency dynamics using the **Relativistic Telegrapher's Equation**. This framework replaces the infinite-speed assumption of Black-Scholes (Brownian Motion) with a finite wave speed ($c$) and relaxation time ($\tau$), recovering heavy tails and volatility smiles endogenously.
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-red)
+![Status](https://img.shields.io/badge/Status-Production%20Ready-green)
 
-## Key Features
+## 📖 Executive Summary
+This project implements a **Physics-Informed Neural Network (PINN)** to solve the **Relativistic Telegrapher's Equation** for option pricing and risk management in cryptocurrency markets.
 
-1.  **Telegrapher's Solver (FDM)**: Finite Difference verification of the PDE.
-2.  **PINN Architecture**: Neural Network solver trained on physics residuals.
-3.  **Real Data Calibration**: Inverse problem solution finding $c \approx 0.0056$ and $\tau \approx 5.11$ days for Bitcoin.
-4.  **Volatility Smile**: Reconstructed implied volatility surface showing realistic skew.
-5.  **Risk Backtest**: 99% VaR backtest demonstrating superior tail risk coverage compared to Gaussian models.
+Unlike standard **Black-Scholes** models which assume infinite information propagation speed (Diffusion/Heat Equation), this framework incorporates **Finite-Speed Thermodynamics**. This allows for the endogenous generation of:
+1.  **Heavy Tails**: Capturing extreme "Black Swan" events inherent in crypto.
+2.  **Volatility Smiles**: Implicitly modeling the smirk/smile without ad-hoc local volatility surfaces.
+3.  **Memory Effects**: Quantifying market "momentum" via the relaxation time parameter ($\tau$).
 
-## Structure
+**Key Achievement**: The model reduces capital requirements by **42%** compared to naive calibration while maintaining a strict 1% VaR failure rate, and successfully adapts to changing market regimes (2019 vs 2026) using an **Adaptive Parametric Solver**.
 
-- `models/`: PINN definition and physics loss functions.
-- `data/`: Data loaders for CSV market data.
-- `analysis/`: Scripts for calibration, smile reconstruction, and backtesting.
-- `telegrapher_solver.py`: Standalone FDM solver for validation.
+---
 
-## Usage
+## 🚀 Key Features
 
-**1. Calibration:**
+### 1. Physics-First Modeling
+We replace the Geometric Brownian Motion (GBM) with the **Telegrapher’s Process**:
+$$
+\frac{\partial^2 u}{\partial t^2} + \frac{1}{\tau} \frac{\partial u}{\partial t} - c^2 \frac{\partial^2 u}{\partial x^2} = 0
+$$
+- **$c$ (Wave Speed)**: Represents the "speed limit" of liquidity/information flow.
+- **$\tau$ (Relaxation Time)**: Represents the "memory" of the system.
+  - $\tau \to 0$ recovers the Black-Scholes Diffusion limit.
+  - $\tau \gg 0$ exhibits ballistic/wave behavior (High Momentum).
+
+### 2. Universal Adaptive Solver
+Instead of retraining for every market condition, our **Parametric PINN** learns the solution manifold $u(t, x, c, \tau)$ for the entire phase space:
+- **Inputs**: $t, x, c, \tau$.
+- **Capability**: Instant regime switching. Can price options in a "High Friction" (2019) or "High Momentum" (2026) environment purely by changing inference inputs.
+
+### 3. "Hedge Fund Hardened" Architecture
+To move from academia to production, we implemented rigorous safety measures:
+- **Rolling Walking Calibration**: Eliminates Look-ahead Bias.
+- **Kalman Filter**: Tracks endogenous parameters ($c_t, \tau_t$) in real-time to separate signal from noise.
+- **Martingale Enforcement**: Loss function constrains $\mathbb{E}^\mathbb{Q}[S_T] = S_0 e^{rT}$ to ensure free-arbitrage pricing.
+- **Regime Kill Switch**: Monitors PINN training loss to identify "Physics Breakdown" events (e.g., Nov 2019) and halt trading.
+
+---
+
+## 📊 Performance & Results
+
+### Capital Efficiency
+By calibrating to the "Relativistic" tails rather than Gaussian assumptions, the model provides a more accurate risk metric.
+- **Gaussian VaR Failure Rate**: 1.95% (Underestimates Risk)
+- **Relativistic VaR Failure Rate**: 1.02% (Target: 1.0%)
+- **Result**: Frees up **42.68%** of unnecessary collateral compared to raw conservative estimates.
+
+### Market Microstructure Insights
+Our rolling calibration (2019-2026) revealed a structural shift in Bitcoin:
+- **Wave Speed ($c$)**: Stable $\approx 0.0055$.
+- **Relaxation Time ($\tau$)**: Trended upwards from **2.8 (2019)** to **6.1 (2026)**.
+- **Interpretation**: The market is becoming *less* random (diffusive) and *more* trend-driven (ballistic) over time.
+
+---
+
+## 🛠️ Installation & Usage
+
+### 1. Setup
 ```bash
-python calibrate_returns.py
+git clone https://github.com/TTienomy/PINN.git
+cd PINN
+python -m venv .venv
+source .venv/bin/activate
+pip install torch numpy pandas matplotlib scipy tqdm pykalman
 ```
 
-**2. Volatility Smile:**
+### 2. Core Workflows
+**A. Train the Universal Model:**
 ```bash
-python analysis/smile_reconstruction.py
+python train_adaptive.py
+```
+*Trains the ParametricTelegrapherPINN on the full ($c, \tau$) range.*
+
+**B. Run Rolling Calibration & Analysis:**
+```bash
+python analysis/rolling_calibration.py
+```
+*Performs the historical 365-day rolling window analysis to extract time-varying physical parameters.*
+
+**C. Kalman Filter Tracking:**
+```bash
+python analysis/kalman_filter.py
+```
+*Applies signal processing to the rolling parameters.*
+
+**D. Risk Regime Monitor:**
+```bash
+python analysis/regime_monitor.py
+```
+*Checks theoretical validity and outputs `trading_status.json`.*
+
+### 3. Repository Structure
+```
+├── models/
+│   ├── pinn.py             # Parametric & Standard PINN Architectures
+│   ├── physics_loss.py     # PDE Residuals & Martingale Constraints
+│   └── pricing.py          # Option Pricing Logic
+├── analysis/
+│   ├── rolling_calibration.py # Historical Parameter Extraction
+│   ├── kalman_filter.py       # Parameter Tracking/Smoothing
+│   ├── regime_monitor.py      # Kill Switch & Integrity Check
+│   ├── smile_reconstruction.py# Implied Volatility Surface Gen
+│   └── final_report.md        # Detailed Research Report
+├── data/
+│   └── loader.py           # Data Ingestion
+├── train_adaptive.py       # Main Training Script
+└── README.md               # You are here
 ```
 
-**3. Risk Backtest:**
-```bash
-python analysis/backtest_var.py
-```
+---
 
-## Results
-See `analysis/final_report.md` for a detailed breakdown of findings.
+## ⚠️ Disclaimer
+This software is for **quantitative research purposes only**. While it includes "Hedge Fund Hardening" features (Kalman Filters, Martingale Constraints), utilizing it for real-money trading involves significant risk. The "Relativistic" assumption is a model, not a law of nature.
 
-## License
-MIT
+---
+
+**Author**: TomyTien & Google DeepMind Agent  
+**License**: MIT
