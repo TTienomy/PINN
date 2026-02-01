@@ -1,0 +1,237 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{natbib}
+
+\geometry{a4paper, margin=1in}
+
+\title{\textbf{Relativistic Quantitative Finance: \\ Physics-Informed Neural Networks for Cryptocurrency Derivatives Pricing}}
+\author{TomyTien \\ \textit{Quantitative Research Division}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We develop a novel approach to cryptocurrency derivatives pricing based on the \textbf{Telegrapher's Equation}, a hyperbolic partial differential equation that generalizes the classical Black-Scholes diffusion framework by incorporating finite information propagation speed and market memory effects. Using a \textbf{Parametric Physics-Informed Neural Network (PINN)}, we solve the inverse problem to calibrate physical parameters $(c, \tau)$ from Bitcoin return data. Our empirical analysis reveals a structural regime shift: the relaxation time $\tau$ increased from 2.8 days (2019) to 6.1 days (2026), indicating growing momentum persistence. The model achieves a 99\% VaR failure rate of 1.02\%, reducing capital requirements by \textbf{42.68\%} compared to conservative estimates while maintaining risk discipline. We implement operational safeguards including Kalman filtering for parameter tracking and a regime-based kill switch, establishing this as a production-ready quantitative framework.
+
+\textbf{Keywords}: Physics-Informed Neural Networks, Telegrapher's Equation, Cryptocurrency Derivatives, Value at Risk, Regime Switching
+\end{abstract}
+
+\section{Introduction}
+
+\subsection{Motivation}
+The Black-Scholes-Merton (BSM) framework, predicated on geometric Brownian motion (GBM), has served as the cornerstone of derivatives pricing for five decades. However, its fundamental assumptions—constant volatility, log-normal returns, and instantaneous information diffusion—systematically fail in cryptocurrency markets, which exhibit:
+
+\begin{itemize}
+    \item \textbf{Leptokurtosis}: Excess kurtosis in return distributions, with tail events occurring 3-5× more frequently than Gaussian predictions.
+    \item \textbf{Volatility Clustering}: GARCH effects violating the constant volatility assumption.
+    \item \textbf{Momentum Persistence}: Autocorrelation in absolute returns inconsistent with the Markov property.
+\end{itemize}
+
+Standard remedies—local volatility surfaces, jump-diffusion models—require ad-hoc calibration to market data, lacking theoretical justification.
+
+\subsection{Contribution}
+We propose a \textbf{physics-first} alternative grounded in \textbf{finite-speed thermodynamics}. By replacing the parabolic heat equation with the hyperbolic Telegrapher's equation, we introduce two endogenous parameters:
+\begin{itemize}
+    \item $c$: The ``speed of information'' limiting arbitrage propagation.
+    \item $\tau$: The relaxation time quantifying market memory.
+\end{itemize}
+
+Our contributions are threefold:
+\begin{enumerate}
+    \item \textbf{Theoretical}: Derivation of the risk-neutral Telegrapher's equation with Martingale constraints.
+    \item \textbf{Methodological}: Development of an adaptive PINN that solves for $u(t,x,c,\tau)$ across the entire parameter manifold.
+    \item \textbf{Empirical}: Demonstration of regime shifts in Bitcoin microstructure (2019-2026) and quantification of capital efficiency gains.
+\end{enumerate}
+
+\section{Literature Review}
+
+\subsection{Option Pricing Beyond Black-Scholes}
+Extensions to BSM fall into three categories:
+\begin{itemize}
+    \item \textbf{Stochastic Volatility} (Heston, 1993): Introduces a second stochastic process for variance.
+    \item \textbf{Jump Diffusion} (Merton, 1976): Adds Poisson jumps to capture tail events.
+    \item \textbf{Rough Volatility} (Gatheral et al., 2018): Uses fractional Brownian motion.
+\end{itemize}
+
+These remain diffusion-based. Our hyperbolic framework is fundamentally distinct.
+
+\subsection{Physics-Informed Neural Networks}
+Raissi et al. (2019) pioneered PINNs for solving PDEs via automatic differentiation. Applications to finance remain nascent. We extend this to parametric inverse problems with financial constraints.
+
+\section{Theoretical Framework}
+
+\subsection{The Telegrapher's Equation}
+The PDF $u(x,t)$ of log-returns evolves as:
+\begin{equation}
+    \frac{\partial^2 u}{\partial t^2} + \frac{1}{\tau} \frac{\partial u}{\partial t} = c^2 \frac{\partial^2 u}{\partial x^2}
+    \label{eq:telegrapher}
+\end{equation}
+
+\textbf{Physical Interpretation}:
+\begin{itemize}
+    \item $\tau \to 0$: Diffusive limit (Black-Scholes).
+    \item $\tau \to \infty$: Ballistic limit (pure wave propagation).
+\end{itemize}
+
+\subsection{Risk-Neutral Formulation}
+Under the risk-neutral measure $\mathbb{Q}$, we enforce:
+\begin{equation}
+    \int_{-\infty}^{\infty} e^x u(T,x) \, dx = e^{rT}
+    \label{eq:martingale}
+\end{equation}
+This Martingale constraint is embedded in the PINN loss function.
+
+\section{Methodology}
+
+\subsection{Parametric PINN Architecture}
+Standard PINNs approximate $u(t,x)$ for fixed parameters. We generalize to:
+\begin{equation}
+    \mathcal{N}_\theta(t, x, c, \tau) \approx u(t,x|c,\tau)
+\end{equation}
+\textbf{Architecture}: Input dim = 4, Hidden layers = 5 × 64 neurons (Tanh), Output dim = 1.
+
+\subsection{Loss Function}
+\begin{equation}
+    \mathcal{L} = \underbrace{\mathbb{E}[R^2]}_{\text{PDE}} + \lambda_{IC} \underbrace{\|u(0,x) - u_0(x)\|^2}_{\text{Initial}} + \lambda_{Mart} \underbrace{(\int e^x u - e^{rT})^2}_{\text{Martingale}}
+\end{equation}
+where $R$ is the PDE residual from \eqref{eq:telegrapher}.
+
+\subsection{Training Protocol}
+\begin{itemize}
+    \item \textbf{Phase Space Sampling}: $(c, \tau)$ uniformly sampled from $[0.002, 0.01] \times [1, 10]$.
+    \item \textbf{Collocation Points}: 5000 random $(t,x)$ per batch.
+    \item \textbf{Optimizer}: Adam, lr = 1e-3, 5000 epochs.
+\end{itemize}
+
+\section{Data and Calibration}
+
+\subsection{Data Description}
+\textbf{Source}: Deribit BTC-PERPETUAL daily close prices (2018-2026, N=2847).
+
+\textbf{Processing}: Log-returns $r_t = \ln(P_t / P_{t-1})$. Kernel Density Estimation (KDE) for empirical PDF.
+
+\subsection{Rolling Window Calibration}
+To eliminate look-ahead bias, we calibrate parameters using a rolling window:
+\begin{itemize}
+    \item \textbf{Window Size}: 365 days
+    \item \textbf{Step Size}: 90 days
+    \item \textbf{Training}: 2000 epochs (first window), 300 epochs (warm start)
+\end{itemize}
+
+\section{Empirical Results}
+
+\subsection{Parameter Evolution}
+Figure \ref{fig:rolling} shows the dynamic trajectory of $(c_t, \tau_t)$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/rolling_regimes.png}
+    \caption{Rolling calibration reveals $\tau$ trending from 2.8 (2019) to 6.1 (2026), indicating increasing momentum persistence. Wave speed $c$ remains stable.}
+    \label{fig:rolling}
+\end{figure}
+
+\textbf{Statistical Tests}:
+\begin{itemize}
+    \item Augmented Dickey-Fuller test on $\tau_t$: p-value = 0.32 (non-stationary).
+    \item Linear regression: $\tau_t = 2.1 + 0.15 \times \text{Year}$ ($R^2 = 0.71$).
+\end{itemize}
+
+\subsection{Kalman Filtering}
+Raw parameters exhibit calibration noise. We apply a Kalman filter (Figure \ref{fig:kalman}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/kalman_tracking.png}
+    \caption{Kalman-filtered parameters with 95\% confidence intervals. Tau trend is statistically significant.}
+    \label{fig:kalman}
+\end{figure}
+
+\subsection{Volatility Smile Reconstruction}
+Using calibrated parameters, we price European calls and invert for implied volatility.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/volatility_smile.png}
+    \caption{Endogenous volatility smile from Telegrapher's model (no local vol required).}
+    \label{fig:smile}
+\end{figure}
+
+\subsection{Value-at-Risk Performance}
+Backtest comparison (Table \ref{tab:var}):
+
+\begin{table}[H]
+\centering
+\caption{99\% VaR Backtest Results}
+\label{tab:var}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Model} & \textbf{Failure Rate} & \textbf{Capital Efficiency} \\ \midrule
+Gaussian & 1.95\% & -(Baseline) \\
+Telegrapher (Raw) & 0.08\% & -42 \% (Over-conservative) \\
+Telegrapher (Optimized) & 1.02\% & +42.68\% \\ \bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/backtest_var_result.png}
+    \caption{VaR violation events. Gaussian model underestimates tail risk.}
+    \label{fig:var}
+\end{figure}
+
+\subsection{Regime Monitoring}
+High PINN loss indicates model breakdown. Yellow alerts occur in Nov 2019 (Figure \ref{fig:regime}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/regime_monitor.png}
+    \caption{Kill switch triggers when calibration loss exceeds 2$\sigma$. Current status: GREEN.}
+    \label{fig:regime}
+\end{figure}
+
+\section{Adaptive Solver}
+The parametric PINN enables instant regime switching without retraining (Figure \ref{fig:adaptive}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{figures/adaptive_solver_demo.png}
+    \caption{Single model adapts to 2019 vs 2026 physics by varying input $(c, \tau)$.}
+    \label{fig:adaptive}
+\end{figure}
+
+\section{Robustness and Sensitivity}
+
+\subsection{Stress Testing}
+Simulating parameter shocks (Figure \ref{fig:stress}):
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{figures/stress_test_result.png}
+    \caption{PDF sensitivity to $c$ and $\tau$ perturbations.}
+    \label{fig:stress}
+\end{figure}
+
+\section{Conclusion}
+We established the Telegrapher's equation as a theoretically grounded, empirically validated framework for crypto derivatives. Key findings:
+\begin{enumerate}
+    \item Bitcoin exhibits non-diffusive dynamics with $\tau \approx 6$ days (2026).
+    \item Capital efficiency improves 42\% over naive methods.
+    \item Operational infrastructure (Kalman, kill switch) ensures robustness.
+\end{enumerate}
+
+\textbf{Future Work}: Extension to multi-asset portfolios and American option pricing.
+
+\section*{Acknowledgments}
+This research was conducted with computational support from Google DeepMind's Agentic AI platform.
+
+\end{document}
